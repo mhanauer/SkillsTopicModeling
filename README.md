@@ -1,4 +1,4 @@
-# SkillsTopicModeling---
+---
 title: "Sentiment Analysis"
 output: html_document
 ---
@@ -56,8 +56,19 @@ I think I need to add an id value.  Then I need to break the document down by wo
 head(both)
 bothCount = both %>%
   unnest_tokens(word, RB) %>%
+  group_by(id) %>%
+  summarize(words = n())
+head(bothCount)
+dim(both)
+dim(bothCount)
+bothCount$id
+both$id
+bronte <- gutenberg_download(c(1260, 768, 969, 9182, 767))
+tidy_bronte <- bronte %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
   count(word, sort = TRUE)
-
+?count
 ```
 
 
