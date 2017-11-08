@@ -1,4 +1,4 @@
-# SkillsTopicModeling---
+---
 title: "Sentiment Analysis"
 output: html_document
 ---
@@ -48,33 +48,47 @@ n = n[1]
 id = 1:n
 both$id = id
 colnames(both) = c("RB", "id")
-both$RB = as.character(both$RB)
+
 head(both)
+both = apply(both, 2, function(x){ifelse(x == "N/a", NA, ifelse(x == "N/A", NA, x))})
+both = data.frame(na.omit(both))
+both$RB = as.character(both$RB)
+dim(both)
+
 ```
-I think I need to add an id value.  Then I need to break the document down by word count.
+Ok no you have an ID word, and the count, so you should be able to turn this into a document term matrix.
 ```{r}
 head(both)
 bothCount = both %>%
   unnest_tokens(word, RB) %>%
-  count(word, sort = TRUE)
-
-```
-
-
-Here is an example with AP and see how you can mirror this for your data
-```{r}
-
-data("AssociatedPress")
-AssociatedPress
-terms = Terms(AssociatedPress)
-head(terms, 50)
-# I think i is the document id v is the count and j must be the term?
-# This converts non-tidy to tidy
-ap_td = tidy(AssociatedPress); head(ap_td, 30)
-# This converts tidy to document matrix term
-
-ap_tdDTM = ap_td %>%
+  anti_join(stop_words) %>%
+  group_by(id) %>%
+  count(word)
+colnames(bothCount) =c("document", "term", "count")
+bothCount$document = as.integer(bothCount$document)
+bothCount
+bothCountDTM = bothCount %>%
   cast_dtm(document, term, count)
-# Document number, term identification, count for term
+bothCountDTM
+```
+Now we can try and run the model
+```{r}
+bothLDA = LDA(bothCountDTM, k =4, control = list(seed=123))
+bothLDATopics = tidy(bothLDA, matrix = "beta")
+bothLDATopics
+
+bothLDATop = bothLDATopics %>%
+  group_by(topic) %>%
+  top_n(15, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+bothLDATop
+
+bothLDATop %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
 ```
 
